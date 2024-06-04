@@ -54,7 +54,7 @@ const HomeScreen = ({ navigation }) => {
             
             <TouchableOpacity 
                 style={styles.button} 
-                onPress={() => navigation.navigate('LiveDetectScreen')} // Adjust the navigation target as necessary
+                onPress={() => navigation.navigate('livedetection')} // Adjust the navigation target as necessary
             >
                 <Text style={styles.buttonText}>Live Detect</Text>
             </TouchableOpacity>

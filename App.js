@@ -5,6 +5,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import SignupScreen from './screens/signup';
 import LoginScreen from './screens/login';
 import HomeScreen from './screens/home';
+import LiveDetection from './screens/video';
 
 const Stack = createStackNavigator();
 
@@ -19,6 +20,7 @@ function App() {
         <Stack.Screen name="login" component={LoginScreen} />
         <Stack.Screen name="signup" component={SignupScreen} />
         <Stack.Screen name="homescreen" component={HomeScreen} />
+        <Stack.Screen name="livedetection" component={LiveDetection} />
       </Stack.Navigator>
     </NavigationContainer>
   );
