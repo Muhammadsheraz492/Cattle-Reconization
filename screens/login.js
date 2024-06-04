@@ -32,7 +32,7 @@ const LoginScreen = ({ navigation }) => {
             if (user.emailVerified) {
                 Alert.alert('Success', 'Logged in successfully!');
                 // Navigate to another screen upon successful login if you have a navigation setup
-                // navigation.navigate('Home');
+                navigation.navigate('homescreen');
             } else {
                 Alert.alert('Error', 'Email not verified. Please verify your email before logging in.we are sent email!');
                 await sendEmailVerification(user);
