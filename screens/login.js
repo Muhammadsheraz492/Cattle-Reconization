@@ -2,12 +2,20 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { signInWithEmailAndPassword,sendEmailVerification } from 'firebase/auth'; 
 import { auth } from './firebase/firebase'; // Adjust the path as necessary
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LoginScreen = ({ navigation }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
-
+    const storeEmail = async (email) => {
+        try {
+            await AsyncStorage.setItem('@user_email', email);
+            navigation.navigate('homescreen');
+        } catch (error) {
+            Alert.alert('Failed to save email', error);
+        }
+    };
     const validateEmail = (email) => {
         const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return re.test(String(email).toLowerCase());
@@ -32,7 +40,8 @@ const LoginScreen = ({ navigation }) => {
             if (user.emailVerified) {
                 Alert.alert('Success', 'Logged in successfully!');
                 // Navigate to another screen upon successful login if you have a navigation setup
-                navigation.navigate('homescreen');
+                // navigation.navigate('homescreen');
+                storeEmail(email)
             } else {
                 Alert.alert('Error', 'Email not verified. Please verify your email before logging in.we are sent email!');
                 await sendEmailVerification(user);

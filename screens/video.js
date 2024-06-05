@@ -1,9 +1,12 @@
-import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, AccessibilityInfo, ActivityIndicator,Alert } from 'react-native';
 import { useEffect, useState, useRef } from 'react';
 import { Camera } from 'expo-camera';
 import { Video } from 'expo-av';
 import { shareAsync } from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library';
+import axios from 'axios';
+import FormData from 'form-data';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Livedetection() {
   const cameraRef = useRef(null);
@@ -13,9 +16,24 @@ export default function Livedetection() {
   const [isRecording, setIsRecording] = useState(false);
   const [video, setVideo] = useState(null);
   const [timer, setTimer] = useState(0);
+  const [Uploading,setUploading]=useState(false)
+  const [email,setemail]=useState()
+  const getEmail = async () => {
+      try {
+          const email = await AsyncStorage.getItem('@user_email');
+          // return email != null ? email : null;
+          console.log(email);
+          setemail(email)
+      } catch (error) {
+          console.error('Failed to retrieve email', error);
+          // return null;
+      }
+  };
+
 
   useEffect(() => {
     (async () => {
+    getEmail()
       const cameraPermission = await Camera.requestCameraPermissionsAsync();
       const microphonePermission = await Camera.requestMicrophonePermissionsAsync();
       const mediaLibraryPermission = await MediaLibrary.requestPermissionsAsync();
@@ -81,7 +99,42 @@ export default function Livedetection() {
     const remainingSeconds = seconds % 60;
     return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
   };
+  const uploadVideo = async () => {
+    if (!video.uri) return;
 
+    setUploading(true);
+
+    // Create a new FormData object
+    let data = new FormData();
+    data.append('video_file', {
+        uri: video.uri,
+        type: 'video/mp4',
+        name: 'video.mp4',
+    });
+    data.append('title', 'Sample');
+    data.append('email', email);
+
+    let config = {
+        method: 'post',
+        maxBodyLength: Infinity,
+        url: 'http://64.227.131.152:8001/api/video-upload/',
+        headers: { 
+            'Content-Type': 'multipart/form-data',
+        },
+        data: data,
+    };
+
+    try {
+        const response = await axios.request(config);
+        console.log(JSON.stringify(response.data));
+        Alert.alert('Live Detection',response.data.message);
+    } catch (error) {
+        console.log(error);
+        Alert.alert('Video upload failed!');
+    } finally {
+        setUploading(false);
+    }
+};
   if (video) {
     return (
       <SafeAreaView style={styles.container}>
@@ -93,8 +146,14 @@ export default function Livedetection() {
           isLooping
         />
         <View style={styles.actionContainer}>
-          <TouchableOpacity style={styles.button} onPress={shareVideo}>
-            <Text style={styles.buttonText}>Upload</Text>
+          <TouchableOpacity disabled={Uploading} style={styles.button} onPress={uploadVideo}>
+            {Uploading?(
+                <ActivityIndicator size={'large'} color={'#fff'} />
+            ):(
+                <Text style={styles.buttonText}>Upload</Text>
+            )
+
+            }
           </TouchableOpacity>
           {hasMediaLibraryPermission && (
             <TouchableOpacity style={styles.button} onPress={saveVideo}>
