@@ -6,6 +6,7 @@ import SignupScreen from './screens/signup';
 import LoginScreen from './screens/login';
 import HomeScreen from './screens/home';
 import LiveDetection from './screens/video';
+import AutoLivedetection from './screens/autolive';
 
 const Stack = createStackNavigator();
 
@@ -21,6 +22,7 @@ function App() {
         <Stack.Screen name="signup" component={SignupScreen} />
         <Stack.Screen name="homescreen" component={HomeScreen} />
         <Stack.Screen name="livedetection" component={LiveDetection} />
+        <Stack.Screen name="autolivedetection" component={AutoLivedetection} />
       </Stack.Navigator>
     </NavigationContainer>
   );

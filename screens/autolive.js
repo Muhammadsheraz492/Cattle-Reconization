@@ -1,94 +1,83 @@
-import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, AccessibilityInfo, ActivityIndicator, Alert } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useEffect, useState, useRef } from 'react';
 import { Camera } from 'expo-camera';
-import { Video } from 'expo-av';
-import { shareAsync } from 'expo-sharing';
-import * as MediaLibrary from 'expo-media-library';
 import axios from 'axios';
 import FormData from 'form-data';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function Livedetection() {
+export default function AutoLivedetection() {
   const cameraRef = useRef(null);
   const [hasCameraPermission, setHasCameraPermission] = useState(undefined);
   const [hasMicrophonePermission, setHasMicrophonePermission] = useState(undefined);
-  const [hasMediaLibraryPermission, setHasMediaLibraryPermission] = useState(undefined);
   const [isRecording, setIsRecording] = useState(false);
-  const [video, setVideo] = useState(null);
   const [timer, setTimer] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [email, setEmail] = useState(null);
 
-  const getEmail = async () => {
-    try {
-      const storedEmail = await AsyncStorage.getItem('@user_email');
-      setEmail(storedEmail);
-    } catch (error) {
-      console.error('Failed to retrieve email', error);
-    }
-  };
-
   useEffect(() => {
+    const getEmail = async () => {
+      try {
+        const storedEmail = await AsyncStorage.getItem('@user_email');
+        setEmail(storedEmail);
+      } catch (error) {
+        console.error('Failed to retrieve email', error);
+      }
+    };
+
     (async () => {
-      await getEmail();
+      getEmail();
       const cameraPermission = await Camera.requestCameraPermissionsAsync();
       const microphonePermission = await Camera.requestMicrophonePermissionsAsync();
-      const mediaLibraryPermission = await MediaLibrary.requestPermissionsAsync();
 
       setHasCameraPermission(cameraPermission.status === "granted");
       setHasMicrophonePermission(microphonePermission.status === "granted");
-      setHasMediaLibraryPermission(mediaLibraryPermission.status === "granted");
     })();
   }, []);
 
   useEffect(() => {
-    if (hasCameraPermission && hasMicrophonePermission) {
-      startRecording();
-    }
-  }, [hasCameraPermission, hasMicrophonePermission]);
-
-  useEffect(() => {
-    let interval;
+    let timerInterval;
     if (isRecording) {
-      interval = setInterval(() => {
-        setTimer((prevTime) => {
-          if (prevTime === 59) {
-            stopRecording();
-            return 0;
-          }
-          return prevTime + 1;
-        });
+      timerInterval = setInterval(() => {
+        setTimer((prevTime) => prevTime + 1);
       }, 1000);
     } else {
-      clearInterval(interval);
+      clearInterval(timerInterval);
       setTimer(0);
     }
-    return () => clearInterval(interval);
+    return () => clearInterval(timerInterval);
   }, [isRecording]);
 
-  const startRecording = async () => {
-    if (cameraRef.current) {
-      setIsRecording(true);
-      const options = {
-        quality: "1080p",
-        maxDuration: 7200,
-        mute: false,
-      };
-      try {
-        const recordedVideo = await cameraRef.current.recordAsync(options);
-        setVideo(recordedVideo);
-        setIsRecording(false);
-        uploadVideo(recordedVideo);
-      } catch (error) {
-        console.log('Failed to start recording', error);
-      }
+  useEffect(() => {
+    let recordInterval;
+    if (isRecording) {
+      recordInterval = setInterval(async () => {
+        await recordAndUploadVideo();
+      }, 10000); // 10 seconds interval
+    } else {
+      clearInterval(recordInterval);
     }
+    return () => clearInterval(recordInterval);
+  }, [isRecording]);
+
+  const startRecordingCycle = () => {
+    setIsRecording(true);
   };
 
-  const stopRecording = () => {
-    if (cameraRef.current) {
-      setIsRecording(false);
-      cameraRef.current.stopRecording();
+  const stopRecordingCycle = () => {
+    setIsRecording(false);
+  };
+
+  const recordAndUploadVideo = async () => {
+    try {
+      const recordedVideo = await cameraRef.current.recordAsync({
+        quality: "1080p",
+        maxDuration: 10, // Record for 10 seconds
+        mute: false,
+      });
+      setTimer(0); // Reset the timer after each recording
+      await uploadVideo(recordedVideo);
+    } catch (error) {
+      console.error("Recording or uploading failed", error);
     }
   };
 
@@ -120,18 +109,12 @@ export default function Livedetection() {
       const response = await axios.request(config);
       console.log(JSON.stringify(response.data));
       Alert.alert('Live Detection', response.data.message);
-      setUploading(false);
-      startRecording();
     } catch (error) {
-      console.log(error);
+      console.error("Video upload failed", error);
       Alert.alert('Video upload failed!');
+    } finally {
+      setUploading(false);
     }
-  };
-
-  const formatTime = (seconds) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
   };
 
   if (hasCameraPermission === undefined || hasMicrophonePermission === undefined) {
@@ -143,11 +126,11 @@ export default function Livedetection() {
   return (
     <Camera style={styles.container} ref={cameraRef}>
       <View style={styles.topContainer}>
-        {isRecording && <Text style={styles.timer}>{formatTime(timer)}</Text>}
+        {isRecording && <Text style={styles.timer}>{`${Math.floor(timer / 60)}:${timer % 60 < 10 ? '0' : ''}${timer % 60}`}</Text>}
       </View>
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.recordButton} onPress={isRecording ? stopRecording : startRecording}>
-          <Text style={styles.buttonText}>{isRecording ? "Stop Recording" : "Record Video"}</Text>
+        <TouchableOpacity style={styles.recordButton} onPress={isRecording ? stopRecordingCycle : startRecordingCycle}>
+          <Text style={styles.buttonText}>{isRecording ? "Stop Recording" : "Start Recording"}</Text>
         </TouchableOpacity>
       </View>
     </Camera>

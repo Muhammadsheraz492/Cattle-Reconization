@@ -22,26 +22,55 @@ const HomeScreen = ({ navigation }) => {
     };
 
     const pickImage = async () => {
-        // Ask for permission to access the gallery
         setImage(null);
-        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-        if (permissionResult.granted === false) {
-            Alert.alert("Permission to access gallery is required!");
+        const mediaLibraryPermissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        const cameraPermissionResult = await ImagePicker.requestCameraPermissionsAsync();
+    
+        if (mediaLibraryPermissionResult.granted === false || cameraPermissionResult.granted === false) {
+            Alert.alert("Permission to access camera and gallery is required!");
             return;
         }
-
-        // Open image picker
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            aspect: [4, 3],
-            quality: 1,
-        });
-
-        if (!result.canceled) {
-            setImage(result.uri);
-        }
+    
+        Alert.alert(
+            "Select Source",
+            "Choose the source for your image",
+            [
+                {
+                    text: "Camera",
+                    onPress: async () => {
+                        const result = await ImagePicker.launchCameraAsync({
+                            allowsEditing: true,
+                            aspect: [4, 3],
+                            quality: 1,
+                        });
+    
+                        if (!result.canceled) {
+                            setImage(result.uri);
+                        }
+                    }
+                },
+                {
+                    text: "Gallery",
+                    onPress: async () => {
+                        const result = await ImagePicker.launchImageLibraryAsync({
+                            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                            allowsEditing: true,
+                            aspect: [4, 3],
+                            quality: 1,
+                        });
+    
+                        if (!result.canceled) {
+                            setImage(result.uri);
+                        }
+                    }
+                },
+                {
+                    text: "Cancel",
+                    style: "cancel"
+                }
+            ],
+            { cancelable: true }
+        );
     };
     useEffect(()=>{
         getEmail()
@@ -116,6 +145,12 @@ const HomeScreen = ({ navigation }) => {
                 onPress={() => navigation.navigate('livedetection')} // Adjust the navigation target as necessary
             >
                 <Text style={styles.buttonText}>Live Detection</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+                style={styles.button} 
+                onPress={() => navigation.navigate('autolivedetection')} // Adjust the navigation target as necessary
+            >
+                <Text style={styles.buttonText}>Auto Live Detection</Text>
             </TouchableOpacity>
         </View>
     );
